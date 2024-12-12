@@ -143,7 +143,163 @@ if st.session_state.upload_button:
 # Handle live camera feed or Live streaming endpoint
 elif st.session_state.live_button:
     st.subheader("Live Camera Feed Processing or Live streaming endpoint")
-    # code to for live stream
+    # Toggle between live camera feed and live stream URL input
+    live_mode = st.radio("Select Live Mode", ["Live Stream URL", "Live Camera Feed"])
+    # Handle live camera feed or live streaming endpoint
+    if live_mode == "Live Stream URL":
+        st.subheader("Live Stream URL Processing")
+
+        # Input box for live stream URL (e.g., RTSP/HTTP stream)
+        live_stream_url = st.text_input("Enter Live Stream URL (e.g., RTSP, HTTP)")
+
+        if live_stream_url:
+            # Open the live stream using OpenCV
+            cap = cv2.VideoCapture(live_stream_url)
+
+            if not cap.isOpened():
+                st.error("Error: Could not access the live stream.")
+                st.stop()
+
+            # Create a spinner generator
+            # spin = spinner()
+
+            # Streamlit placeholders for video display
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Live Stream Feed (Raw)")
+                live_stream_placeholder = st.empty()  # Placeholder for live stream feed
+
+            with col2:
+                st.subheader("Processed Feed")
+                processed_stream_placeholder = st.empty()  # Placeholder for processed video feed
+
+            # Start processing frames from the live stream
+            while True:
+                ret, frame = cap.read()
+
+                # If frame is read successfully, ret will be True
+                if not ret:
+                    st.warning("Error reading from live stream.")
+                    break
+
+                # Update the live stream feed placeholder with the live video (raw)
+                live_stream_placeholder.image(frame, channels="BGR", caption="Live Stream Feed", use_container_width=True)
+
+                # Convert frame to JPEG (binary data) format
+                _, img_encoded = cv2.imencode('.jpg', frame)
+                img_bytes = img_encoded.tobytes()
+
+                # Send the frame (as an image) to the prediction API
+                response = requests.post(prediction_endpoint, headers=headers, data=img_bytes)
+
+                # Show a spinner in the terminal while waiting for the API response
+                # st.text(f'Processing frame... {next(spin)}')
+
+                if response.status_code == 200:
+                    # Parse the JSON response
+                    prediction_data = response.json()
+
+                    # Extract the predictions and sort them by probability (descending)
+                    predictions = prediction_data.get('predictions', [])
+                    if predictions:
+                        # Sort predictions by probability in descending order
+                        sorted_predictions = sorted(predictions, key=lambda x: x['probability'], reverse=True)
+                        highest_prob_prediction = sorted_predictions[0]
+                        tag_name = highest_prob_prediction['tagName']
+                        probability = highest_prob_prediction['probability']
+
+                        # Draw the tag name with the highest probability on the frame
+                        label = f"{tag_name}: {probability * 100:.2f}%"
+                        cv2.putText(frame, label, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+                else:
+                    st.error(f"Request failed with status code {response.status_code}")
+                    st.error(response.text)
+
+                # Update the processed stream feed placeholder with the frame that includes the prediction label
+                processed_stream_placeholder.image(frame, channels="BGR", caption="Processed Frame", use_container_width=True)
+
+            # Release the video capture object when done
+            cap.release()
+
+    elif live_mode == "Live Camera Feed":
+        st.subheader("Live Camera Feed Processing")
+
+        # Start button for live camera feed
+        live_feed_button = st.button("Start Live Camera Feed")
+        
+        if live_feed_button:
+            # Open webcam feed (index 0 for default webcam)
+            cap = cv2.VideoCapture(0)
+            
+            if not cap.isOpened():
+                st.error("Error: Could not access the camera.")
+                st.stop()
+
+            # Create a spinner generator
+            # spin = spinner()
+
+            # Streamlit placeholders for video display
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Camera Feed (Raw)")
+                camera_placeholder = st.empty()  # Placeholder for live camera feed
+
+            with col2:
+                st.subheader("Processed Feed")
+                processed_placeholder = st.empty()  # Placeholder for processed video feed
+
+            # Start processing frames from the webcam
+            while True:
+                ret, frame = cap.read()
+
+                # If frame is read successfully, ret will be True
+                if not ret:
+                    st.warning("Error reading from camera feed.")
+                    break
+
+                # Update the camera feed placeholder with the live video (raw)
+                camera_placeholder.image(frame, channels="BGR", caption="Live Camera Feed", use_container_width=True)
+
+                # Convert frame to JPEG (binary data) format
+                _, img_encoded = cv2.imencode('.jpg', frame)
+                img_bytes = img_encoded.tobytes()
+
+                # Send the frame (as an image) to the prediction API
+                response = requests.post(prediction_endpoint, headers=headers, data=img_bytes)
+
+                # Show a spinner in the terminal while waiting for the API response
+                # st.text(f'Processing frame... {next(spin)}')
+
+                if response.status_code == 200:
+                    # Parse the JSON response
+                    prediction_data = response.json()
+
+                    # Extract the predictions and sort them by probability (descending)
+                    predictions = prediction_data.get('predictions', [])
+                    if predictions:
+                        # Sort predictions by probability in descending order
+                        sorted_predictions = sorted(predictions, key=lambda x: x['probability'], reverse=True)
+                        highest_prob_prediction = sorted_predictions[0]
+                        tag_name = highest_prob_prediction['tagName']
+                        probability = highest_prob_prediction['probability']
+
+                        # Draw the tag name with the highest probability on the frame
+                        label = f"{tag_name}: {probability * 100:.2f}%"
+                        cv2.putText(frame, label, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+                else:
+                    st.error(f"Request failed with status code {response.status_code}")
+                    st.error(response.text)
+
+                # Update the processed frame placeholder with the frame that includes the prediction label
+                processed_placeholder.image(frame, channels="BGR", caption="Processed Frame", use_container_width=True)
+
+            # Release the video capture object when done
+            cap.release()   
+
 
 else:
      st.session_state.upload_button = st.button("Upload Video")
