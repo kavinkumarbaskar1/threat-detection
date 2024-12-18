@@ -13,8 +13,8 @@ import shutil
 load_dotenv()
 
 # Define the endpoint URL and API key
-prediction_endpoint = os.getenv("PREDICTION_ENDPOINT")
-api_key = os.getenv("PREDICTION_KEY")
+prediction_endpoint = st.secrets.PREDICTION_ENDPOINT
+api_key = st.secrets.PREDICTION_KEY
 
 # Set up the headers for authentication
 headers = {
