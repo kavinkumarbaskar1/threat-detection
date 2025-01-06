@@ -13,8 +13,12 @@ import shutil
 load_dotenv()
 
 # Define the endpoint URL and API key
-prediction_endpoint = os.getenv("PREDICTION_ENDPOINT")
-api_key = os.getenv("PREDICTION_KEY")
+# os.environ["OPENAI_API_VERSION"] = st.secrets.OPENAI_API_VERSION
+os.environ["PREDICTION_ENDPOINT"] = st.secrets.PREDICTION_ENDPOINT
+os.environ["PREDICTION_KEY"] = st.secrets.PREDICTION_KEY
+
+prediction_endpoint = st.secrets.PREDICTION_ENDPOINT
+api_key = st.secrets.PREDICTION_KEY
 
 # Set up the headers for authentication
 headers = {
